@@ -1856,6 +1856,14 @@
 #define NEWVAR(type,var) type *var=calloc(sizeof(type),1)
 #define c_DELETE(type,var)	{destroy_##type(var);free(var);}
 
+#ifdef OS_MINGW
+#define dlclose(H)	lt_dlclose(H)
+#define alloca(S)	malloc(S)
+#define free_alloca(P)	free(P)
+#else
+#define free_alloca(P)	/* NOP */
+#endif
+
 #define EXPAND_MACRO
 
 #define MIN_NUMERIC_DIFF 0.00000000000001
@@ -2489,20 +2497,15 @@ _clip_put_env(char *name, char *val)
 	int l2 = strlen(val);
 	int r;
 
-#ifdef OS_MINGW
-	char *buf = malloc(l1 + l2 + 2);
-#else
 	char *buf = alloca(l1 + l2 + 2);
-#endif
 
 	memcpy(buf, name, l1);
 	memcpy(buf + l1 + 1, val, l2);
 	buf[l1] = '=';
 	buf[l1 + l2 + 1] = 0;
 	r = put_env(&_clip_envp, buf);
-#ifdef OS_MINGW
-	free(buf);
-#endif
+
+	free_alloca(buf);
 
 	return r;
 }
@@ -3289,11 +3292,7 @@ delete_ClipMachine(ClipMachine * mp)
 	/*clear_VarTable(mp, mp->publics);*/
 
 	for (i = 0; i < mp->dlls.count; ++i)
-#ifdef OS_MINGW
-		lt_dlclose(mp->dlls.items[i]);
-#else
 		dlclose(mp->dlls.items[i]);
-#endif
 
 	out = (FILE *) mp->out;
 	if (out != stdout)
@@ -3917,11 +3916,7 @@ _clip_refclone(ClipMachine * mp, ClipVar * dest, ClipVar * src)
 CLIP_DLLEXPORT int
 _clip_eval(ClipMachine * mp, ClipVar * blockp, int argc, ClipVar * stackp, ClipVar * retp)
 {
-#ifdef OS_MINGW
-	ClipVar *stack = malloc(sizeof(ClipVar) * (argc + 1));
-#else
 	ClipVar *stack = alloca(sizeof(ClipVar) * (argc + 1));
-#endif
 	ClipFrame frame = { stack, stack + 1 + argc, __file__, __LINE__, 0, 0, 0, 0, 0, 0, "eval",
 		argc + 1, 0
 	};
@@ -3931,9 +3926,7 @@ _clip_eval(ClipMachine * mp, ClipVar * blockp, int argc, ClipVar * stackp, ClipV
 	if (type != PCODE_t && type != CCODE_t)
 	{
 		_clip_trap_str(mp, __file__, __LINE__, "clip_eval: non-code argument");
-#ifdef OS_MINGW
-		free(stack);
-#endif
+		free_alloca(stack);
 		return _clip_call_errblock(mp, 1);
 	}
 
@@ -3976,9 +3969,7 @@ _clip_eval(ClipMachine * mp, ClipVar * blockp, int argc, ClipVar * stackp, ClipV
 	}
 
 
-#ifdef OS_MINGW
-	free(stack);
-#endif
+	free_alloca(stack);
 	return r;
 }
 
@@ -7137,20 +7128,15 @@ _clip_dimarray(ClipMachine * mp, int n)
 	int i;
 	long *dims;
 
-#ifdef OS_MINGW
-	dims = malloc(sizeof(long) * n);
-#else
 	dims = alloca(sizeof(long) * n);
-#endif
 
 	for (i = 0; i < n; i++)
 		dims[i] = _clip_long(sp - n + i);
 
 	mp->fp->sp -= n - 1;
 	new_array(mp->fp->sp - 1, n, dims);
-#ifdef OS_MINGW
-	free(dims);
-#endif
+
+	free_alloca(dims);
 }
 
 /* create with n dimentions */
@@ -7837,11 +7823,7 @@ clip_fetch(ClipMachine * mp, int dim, int push, int store, ClipVar ** mapp, long
 	ClipVar *vp = NULL;
 	/*ClipVar *app;*/
 	int i;
-#ifdef OS_MINGW
-	long *vect = malloc(sizeof(long) * dim);
-#else
 	long *vect = alloca(sizeof(long) * dim);
-#endif
 
 	memset(&arr, 0, sizeof(ClipVar));
 	_clip_clone(mp, &arr, ap);
@@ -7899,9 +7881,7 @@ clip_fetch(ClipMachine * mp, int dim, int push, int store, ClipVar ** mapp, long
 	}
 
 	_clip_destroy(mp, &arr);
-#ifdef OS_MINGW
-	free(vect);
-#endif
+	free_alloca(vect);
 	return vp;
 }
 
@@ -9517,11 +9497,7 @@ static int
 do_main(ClipMachine * mp, long hash, ClipFunction * func, ClipBlock * block, int argc, char **argv, char **envp)
 {
 	int i, ret;
-#ifdef OS_MINGW
-	ClipVar *_stack = malloc(sizeof(ClipVar) * (argc + 1));
-#else
 	ClipVar *_stack = alloca(sizeof(ClipVar) * (argc + 1));
-#endif
 	ClipFrame _frame =
 		{ _stack, _stack, "" /*__FILE__*//* ": do_main()" */ , /*__LINE__*/ 0, 0, 0, 0, 0, 0, 0, 0, argc + 1, 0 };
 
@@ -9578,9 +9554,7 @@ do_main(ClipMachine * mp, long hash, ClipFunction * func, ClipBlock * block, int
 	_clip_resume(mp, 0, 0);
 	if (ret == 0)
 		ret = errorlevel;
-#ifdef OS_MINGW
-	free(_stack);
-#endif
+	free_alloca(_stack);
 	return ret;
 }
 
