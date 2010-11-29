@@ -22,6 +22,7 @@ AC_SUBST(CWARNFLAGS)
 
 # Checks for library functions.
 
+AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_SRCDIR([clip.h])
 AC_CONFIG_FILES([Makefile
 		 task/Makefile])
