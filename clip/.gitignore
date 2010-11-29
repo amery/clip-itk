@@ -1,3 +1,10 @@
+Makefile.in
+aclocal.m4
+autom4te.cache
+build-aux
+build
+configure
+m4
 _hashcode.h
 bin
 calchash
