@@ -11,6 +11,8 @@ LT_INIT
 AC_PROG_CC_C99
 
 # Checks for libraries.
+AC_CHECK_LIB(pth,pth_version,[have_libpth=true])
+AM_CONDITIONAL(USE_GNUPTH, [test "$have_libpth" = true])
 
 # Checks for header files.
 
@@ -21,6 +23,7 @@ AC_SUBST(CWARNFLAGS)
 # Checks for library functions.
 
 AC_CONFIG_SRCDIR([clip.h])
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+		 task/Makefile])
 
 AC_OUTPUT
