@@ -34,12 +34,13 @@
 
  */
 
+#include "clip_platform.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <pth.h>
-#include "cl_cfg.h"
 #include "task.h"
 #include "task2.h"
 
@@ -94,7 +95,7 @@ calcTv(struct timeval *tv, long msec)
 	tv->tv_usec = (msec % 1000) * 1000;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_INIT(void)
 {
 	if ( pth_inited != 0)
@@ -103,7 +104,7 @@ Task_INIT(void)
 	pth_inited = 1;
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 Task_version(void)
 {
 #ifdef _LDEBUG
@@ -114,7 +115,7 @@ Task_version(void)
 	return 0;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_yield(void)
 {
 #ifdef _LDEBUG
@@ -153,7 +154,7 @@ seach_task_in_list(List *list, pth_t ref)
 }
 
 
-TASK_DLLEXPORT long 
+CLIP_DLLEXPORT long 
 Task_ID()
 {
 	long id;
@@ -175,7 +176,7 @@ Task_ID()
 	return id;
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 Task_get_id(Task * task)
 {
 #ifdef _LDEBUG
@@ -191,7 +192,7 @@ Task_get_id(Task * task)
 	return task->id;
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 Task_sleep(long msec)
 {
 #ifdef _LDEBUG
@@ -211,7 +212,7 @@ Task_sleep(long msec)
 	return 0;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_start_sheduler(void)
 {
 	int ret = canSwitch;
@@ -223,7 +224,7 @@ Task_start_sheduler(void)
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_stop_sheduler(void)
 {
 	int ret = canSwitch;
@@ -296,7 +297,7 @@ task_pth_run(void * data)
 	return NULL;
 }
 
-TASK_DLLEXPORT Task *
+CLIP_DLLEXPORT Task *
 Task_new(const char *name, long stacksize, void *data
 	 ,void *(*run) (void *data), void (*destroy) (void *data))
 {
@@ -344,7 +345,7 @@ Task_new(const char *name, long stacksize, void *data
 	return task;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_start(Task *tp)
 {
 /* not need under PTH*/
@@ -377,7 +378,7 @@ task_pth_stop(List *list, pth_t _ptask)
 	return;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_STOP()
 {
 #ifdef _LDEBUG
@@ -420,7 +421,7 @@ task_pth_start(List *list)
 	return;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_START()
 {
 #ifdef _LDEBUG
@@ -443,7 +444,7 @@ Task_START()
 #endif
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 task_select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds,
 		struct timeval *timeout)
 {
@@ -460,7 +461,7 @@ task_select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds,
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 clip_task_select_if(int fd, void *rp, void *wp, void *ep, void *to)
 {
 #ifdef _LDEBUG
@@ -471,7 +472,7 @@ clip_task_select_if(int fd, void *rp, void *wp, void *ep, void *to)
 	return task_select(fd, (fd_set *) rp, (fd_set *) wp, (fd_set *) ep, (struct timeval *) to);
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_respond(TaskMessage * msg)
 {
 	int ret = 1;
@@ -531,7 +532,7 @@ __Task_sendMessage(long receiver, TaskMessage * msg, int wait)
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_sendMessage(long receiver, TaskMessage * msg)
 {
 #ifdef _LDEBUG
@@ -540,7 +541,7 @@ Task_sendMessage(long receiver, TaskMessage * msg)
 	return __Task_sendMessage(receiver,msg,0);
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_sendMessageWait(int receiver, TaskMessage * msg)
 {
 #ifdef _LDEBUG
@@ -549,7 +550,7 @@ Task_sendMessageWait(int receiver, TaskMessage * msg)
 	return __Task_sendMessage(receiver,msg,1);
 }
 
-TASK_DLLEXPORT void *
+CLIP_DLLEXPORT void *
 TaskMessage_get_data(TaskMessage * msg)
 {
 #ifdef _LDEBUG
@@ -562,7 +563,7 @@ TaskMessage_get_data(TaskMessage * msg)
 	return msg->data;
 }
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 TaskMessage_new(long id, void *data, void (*destroy) (void *data))
 {
 	TaskMessage *msg = NEW(TaskMessage);
@@ -581,7 +582,7 @@ TaskMessage_new(long id, void *data, void (*destroy) (void *data))
 	return msg;
 }
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 Task_peekMessage(void)
 {
 	pth_t ptask;
@@ -612,7 +613,7 @@ Task_peekMessage(void)
 	return NULL;
 }
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 Task_getMessage(void)
 {
 	pth_t ptask;

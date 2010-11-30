@@ -112,6 +112,8 @@
  paul
  */
 
+#include "clip_platform.h"
+
 #include <stdio.h>
 #include <unistd.h>
 #include <setjmp.h>
@@ -125,7 +127,6 @@
 #include "../coll.h"
 #include "../hash.h"
 
-#include "cl_cfg.h"
 #ifdef OS_MINGW
 #include "../_win32.h"
 #else
@@ -289,18 +290,18 @@ static int t_select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exce
 #define t_select select
 #endif
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_INIT(void)
 {
 }
 
-TASK_DLLEXPORT long 
+CLIP_DLLEXPORT long
 Task_version()
 {
 	return 1000L;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_STOP()
 {
 	if (!stopcount)
@@ -312,7 +313,7 @@ Task_STOP()
 	++stopcount;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_START()
 {
 	--stopcount;
@@ -327,7 +328,7 @@ Task_START()
 	}
 }
 
-TASK_DLLEXPORT long 
+CLIP_DLLEXPORT long
 Task_ID()
 {
 	Task *tp = Task_get_currTask();
@@ -340,7 +341,7 @@ Task_ID()
 
 /*  ][ Message */
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 TaskMessage_new(long id, void *data, void (*destroy) (void *data))
 {
 	TaskMessage *msg = NEW(TaskMessage);
@@ -352,7 +353,7 @@ TaskMessage_new(long id, void *data, void (*destroy) (void *data))
 	return msg;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 TaskMessage_delete(TaskMessage * msg)
 {
 	if (!msg)
@@ -362,19 +363,19 @@ TaskMessage_delete(TaskMessage * msg)
 		msg->destroy(msg->data);
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 TaskMessage_get_sender(TaskMessage * msg)
 {
 	return msg->sender;
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 TaskMessage_get_id(TaskMessage * msg)
 {
 	return msg->id;
 }
 
-TASK_DLLEXPORT void *
+CLIP_DLLEXPORT void *
 TaskMessage_get_data(TaskMessage * msg)
 {
 	return msg->data;
@@ -500,7 +501,7 @@ calcTv(struct timeval *tv, long msec)
 
 static struct tms tms_buf;
 
-TASK_DLLEXPORT Task *
+CLIP_DLLEXPORT Task *
 Task_new(const char *name, long stacksize, void *data
 	 ,void * (*run) (void *data), void (*destroy) (void *data))
 {
@@ -557,7 +558,7 @@ initStack(Task * task)
 	return 0;
 }
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_delete(Task * task)
 {
 	HashTable_remove(hashs, task->id);
@@ -575,7 +576,7 @@ Task_delete(Task * task)
 	}
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 Task_get_id(Task * task)
 {
 	if (task == NULL )
@@ -583,7 +584,7 @@ Task_get_id(Task * task)
 	return task->id;
 }
 
-TASK_DLLEXPORT const char *
+CLIP_DLLEXPORT const char *
 Task_get_name(Task * task)
 {
 	if (task == NULL )
@@ -591,13 +592,13 @@ Task_get_name(Task * task)
 	return task->name;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_get_count(void)
 {
 	return activeCount;
 }
 
-TASK_DLLEXPORT void *
+CLIP_DLLEXPORT void *
 Task_spawn(Task * task, Task * chield)
 {
 	chield->parent = task;
@@ -607,7 +608,7 @@ Task_spawn(Task * task, Task * chield)
 	return task->result;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_wakeup(Task * task)
 {
 	if (task->state == Task_wait)
@@ -642,7 +643,7 @@ Task_wakeup(Task * task)
 
 static int task_inited = 0;
 
-TASK_DLLEXPORT void
+CLIP_DLLEXPORT void
 Task_init(void)
 {
 	Task *tp;
@@ -683,20 +684,20 @@ Task_init(void)
 	currTask = mainTask;
 }
 
-TASK_DLLEXPORT Task *
+CLIP_DLLEXPORT Task *
 Task_findTask(long taskid)
 {
 	Task_init();
 	return HashTable_fetch(hashs, taskid);
 }
 
-TASK_DLLEXPORT Task *
+CLIP_DLLEXPORT Task *
 Task_get_currTask()
 {
 	return currTask;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_start_sheduler(void)
 {
 	int ret = canSwitch;
@@ -705,7 +706,7 @@ Task_start_sheduler(void)
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_stop_sheduler(void)
 {
 	int ret = canSwitch;
@@ -714,7 +715,7 @@ Task_stop_sheduler(void)
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_start(Task * tp)
 {
 	if (initStack(tp))
@@ -729,7 +730,7 @@ Task_start(Task * tp)
 		return 0;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_kill(long taskid)
 {
 	Task *tp = Task_findTask(taskid);
@@ -752,7 +753,7 @@ Task_kill(long taskid)
 	return 0;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_killAll(void)
 {
 	Task *tp, *ct;
@@ -811,7 +812,7 @@ Task_killAll(void)
 	return 1;
 }
 
-TASK_DLLEXPORT long
+CLIP_DLLEXPORT long
 Task_sleep(long msec)
 {
 	Task *tp;
@@ -833,7 +834,7 @@ Task_sleep(long msec)
 	return !tp->isTimed;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_wait_read(int fd, long msec)
 {
 	Task *tp;
@@ -887,7 +888,7 @@ Task_wait_read(int fd, long msec)
 	return tp->isTimed;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_wait_write(int fd, long msec)
 {
 	Task *tp;
@@ -954,7 +955,7 @@ calc_wakeup(struct timeval *tv)
 	return times(&tms_buf) + n;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 task_select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds,
 		struct timeval *timeout)
 {
@@ -1033,13 +1034,13 @@ task_select(int nfds, fd_set * readfds, fd_set * writefds, fd_set * exceptfds,
 	return ret;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 clip_task_select_if(int fd, void *rp, void *wp, void *ep, void *to)
 {
 	return task_select(fd, (fd_set *) rp, (fd_set *) wp, (fd_set *) ep, (struct timeval *) to);
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_sendMessage(long receiver, /* new */ TaskMessage * msg)
 {
 	Task *tp = Task_findTask(receiver);
@@ -1070,7 +1071,7 @@ Task_sendMessage(long receiver, /* new */ TaskMessage * msg)
 	return 1;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_sendMessageWait(int receiver, TaskMessage * msg)
 {
 	Task *tp = Task_findTask(receiver);
@@ -1108,7 +1109,7 @@ Task_sendMessageWait(int receiver, TaskMessage * msg)
 	return 1;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_sendAll(TaskMessage * msg)
 {
 	Task *ct = currTask;
@@ -1143,7 +1144,7 @@ Task_sendAll(TaskMessage * msg)
 	return sent;
 }
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 Task_peekMessage(void)
 {
 	Task *ct;
@@ -1160,7 +1161,7 @@ Task_peekMessage(void)
 	return mp;
 }
 
-TASK_DLLEXPORT TaskMessage *
+CLIP_DLLEXPORT TaskMessage *
 Task_getMessage(void)
 {
 	TaskMessage *mp;
@@ -1185,7 +1186,7 @@ Task_getMessage(void)
 	return mp;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_forward(long receiver, TaskMessage * msg)
 {
 	Task *tp = Task_findTask(receiver);
@@ -1208,7 +1209,7 @@ Task_forward(long receiver, TaskMessage * msg)
 	return 1;
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_respond(TaskMessage * msg)
 {
 	int ret = 1;
@@ -1399,7 +1400,7 @@ suicide(Task * task)
 	longjmp(shedEnv, 1);
 }
 
-TASK_DLLEXPORT int
+CLIP_DLLEXPORT int
 Task_yield(void)
 {
 	Task *ct;
