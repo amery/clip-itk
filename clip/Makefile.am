@@ -1,3 +1,10 @@
 ACLOCAL_AMFLAGS = -I m4
 
-SUBDIRS = task
+lib_LIBRARIES = libclip.a
+
+libclip_a_SOURCES =
+if USE_GNUPTH
+libclip_a_SOURCES += task/pth_task.c
+else
+libclip_a_SOURCES += task/cl_task.c
+endif
