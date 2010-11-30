@@ -43,7 +43,7 @@ AC_PROG_CC_C99
 
 # Checks for libraries.
 AC_CHECK_LIB(pth,pth_version,[have_libpth=true])
-AM_CONDITIONAL(USE_GNUPTH, [test "$have_libpth" = true])
+AM_CONDITIONAL(HAVE_LIBPTH, [test "$have_libpth" = true])
 
 # Checks for header files.
 
