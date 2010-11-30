@@ -40,6 +40,7 @@ AC_SUBST(CLIP_DLLEXPORT)
 
 # Checks for programs.
 AC_PROG_CC_C99
+AC_PROG_YACC
 
 # Checks for libraries.
 AC_CHECK_LIB(pth,pth_version,[have_libpth=true])
