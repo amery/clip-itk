@@ -1,0 +1,14 @@
+#ifndef _CLIP_PLATFORM_H
+#define _CLIP_PLATFORM_H
+
+#define CLIP_OSNAME	"@CLIP_OSNAME@"
+#define CLIP_DLLIMPORT	@CLIP_DLLIMPORT@
+#define CLIP_DLLEXPORT	@CLIP_DLLEXPORT@
+
+#define OS_@CLIP_OSNAME@	1
+
+#ifdef OS_CYGWIN
+#	define _WIN32
+#endif
+
+#endif /* !_CLIP_PLATFORM_H */
