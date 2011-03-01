@@ -1,7 +1,0 @@
-*.o
-*.ex
-*.nm
-*.a
-*.so
-hashcode.h
-clip-dev.spec
