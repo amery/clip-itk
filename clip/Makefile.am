@@ -1,5 +1,8 @@
 ACLOCAL_AMFLAGS = -I m4
 
+AM_CFLAGS = $(CWARNFLAGS) -I$(top_srcdir)/include
+AM_LDFLAGS =
+
 lib_LIBRARIES = libclip.a
 
 libclip_a_SOURCES =
