@@ -1030,7 +1030,7 @@
 #ifndef CLIP_H
 #define CLIP_H
 
-#include "clipcfg.h"
+#include "clip_platform.h"
 /*
 #if defined(OS_MINGW)
 	#include "_win32.h"
@@ -1051,7 +1051,7 @@
 #endif
 
 #if defined(__GNUC__)
-		#include "clipcfg.h"
+		#include "clip_platform.h"
 #else
 		#include "wintypes.h"
 #endif

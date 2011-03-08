@@ -21,7 +21,7 @@
 #ifndef NCP_H
 #define NCP_H
 
-#include "clipcfg.h"
+#include "clip_platform.h"
 
 #define USE_NCPFS_LOCK 1
 
