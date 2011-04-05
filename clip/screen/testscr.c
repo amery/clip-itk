@@ -52,12 +52,6 @@ _clip_logg()
 	return 0;
 }
 
-int
-clip_task_select_if(int fd, void *p1, void *p2, void *p3, void *p4)
-{
-	return select(fd, p1, p2, p3, p4);
-}
-
 static const char *
 colorname(int i)
 {
