@@ -40,6 +40,7 @@ AC_SUBST(CLIP_DLLEXPORT)
 
 # Checks for programs.
 AC_PROG_CC_C99
+AM_PROG_CC_C_O
 AC_PROG_YACC
 
 # Checks for libraries.
