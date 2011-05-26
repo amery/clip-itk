@@ -17,6 +17,7 @@
 
  */
 
+#include <wchar.h>
 #include "screen/screen.h"
 
 static unsigned char _koi_cmptbl[256] =

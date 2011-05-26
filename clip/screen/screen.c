@@ -420,7 +420,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#include <assert.h>
 
+#include <wchar.h>
 #include "screen.h"
 #include "charset.h"
 #include "scankey.h"
@@ -788,7 +790,7 @@ static void destroy_ScreenData(ScreenData * dp);
 static void initKey(ScreenData * dp);
 static void termcap_clear_screen(ScreenData * dp);
 static void termcap_scroll(ScreenBase * base, int top, int bottom, int n);
-static void termcap_put_char(ScreenData * dp, int ch, int utf8term);
+static void termcap_put_wchar(ScreenData * dp, wchar_t ch, int utf8term);
 static void termcap_put_graph_char(ScreenData * dp, int ch);
 
 static int termcap_put_raw_char(int c, void *p);
@@ -2174,7 +2176,7 @@ initKey(ScreenData * dp)
 /* termcap init ][ termcap capabilities  */
 
 static void
-termcap_put_char(ScreenData * dp, int ch, int utf8term)
+termcap_put_wchar(ScreenData * dp, wchar_t ch, int utf8term)
 {
 	if (dp->lineDrawMode)
 	{
@@ -2185,19 +2187,20 @@ termcap_put_char(ScreenData * dp, int ch, int utf8term)
 		dp->lineDrawMode = 0;
 	}
 
-	if ((ch & 0x80) || (ch < 32))
+	if (dp->utf8_mode /*&& utf8term*/)
+	{
+		char utfch[7];
+		int n;
+		n = wctomb(utfch, ch);
+		assert(n>0);
+		utfch[n] = 0;
+		termcap_put_raw_str(dp, utfch);
+	}
+	else if ((ch & 0x80) || (ch < 32))
 	{
 		int pg;
 
-		if (dp->utf8_mode /*&& utf8term*/)
-		{
-			char utfch[7];
-			int n;
-			n = u32toutf8( utfch, dp->uniTable[ch] );
-			utfch[n] = 0;
-			termcap_put_raw_str(dp, utfch);
-		}
-		else if (scr_scan_mode && ch > 32)
+		if (scr_scan_mode && ch > 32)
 			termcap_put_raw_char(dp->outputTable[ch], dp);
 		else if (dp->pg_mode && (pg = dp->pgTable[ch]))
 			termcap_put_graph_char(dp, (pg >= PG_SIZE) ? pg : dp->base->pg_chars[pg]);
@@ -2508,8 +2511,8 @@ termcap_scroll(ScreenBase * base, int top, int bottom, int n)
 
 	if (n > 0)
 	{
-		memmove(realScreen->chars[top + n], realScreen->chars[top], (bottom - top + 1 - n) * Columns);
-		memset(realScreen->chars[top], ' ', n * Columns);
+		wmemmove(realScreen->chars[top + n], realScreen->chars[top], (bottom - top + 1 - n) * Columns);
+		wmemset(realScreen->chars[top], ' ', n * Columns);
 		memset(realScreen->colors[top], dp->oldcolor, n * Columns);
 		memset(realScreen->attrs[top], 0, n * Columns);
 		if (dp->termcap_SR && top == 0 && bottom == Lines - 1)
@@ -2529,8 +2532,8 @@ termcap_scroll(ScreenBase * base, int top, int bottom, int n)
 	}
 	else
 	{
-		memmove(realScreen->chars[top], realScreen->chars[top - n], (bottom - top + 1 + n) * Columns);
-		memset(realScreen->chars[bottom + n + 1], ' ', (-n) * Columns);
+		wmemmove(realScreen->chars[top], realScreen->chars[top - n], (bottom - top + 1 + n) * Columns);
+		wmemset(realScreen->chars[bottom + n + 1], ' ', (-n) * Columns);
 		memset(realScreen->colors[bottom + n + 1], dp->oldcolor, (-n) * Columns);
 		memset(realScreen->attrs[bottom + n + 1], 0, (-n) * Columns);
 		if (dp->termcap_SF && top == 0 && bottom == Lines - 1)
@@ -3402,32 +3405,46 @@ new_Screen(ScreenBase * base)
 {
 	int i;
 	Screen *scr;
-	char *mem;
+	void *ptr;
 	int Lines = base->Lines;
 	int Columns = base->Columns;
 
 	scr = calloc(1, sizeof(Screen));
 	scr->base = base;
-	scr->mem = mem = calloc(Lines * Columns * 3 + Lines * 3 * sizeof(char *) + Lines * 2 * sizeof(int), 1);
+	scr->mem = ptr = calloc(1,
+		/* screen memory */
+		Lines * Columns * sizeof(wchar_t) +
+		Lines * Columns * sizeof(char) * 2 +
+		/* per-line shortcuts */
+		Lines * sizeof(wchar_t *) +
+		Lines * sizeof(char *) * 2 +
+		/* misc */
+		Lines * 2 * sizeof(int)
+		);
 
-	scr->chars = (unsigned char **) (mem + Lines * Columns * 3);
-	scr->colors = (unsigned char **) (mem + Lines * Columns * 3 + Lines * sizeof(char *));
-	scr->attrs = (unsigned char **) (mem + Lines * Columns * 3 + Lines * sizeof(char *) * 2);
-	scr->touched = (int *) (mem + Lines * Columns * 3 + Lines * sizeof(char *) * 3);
-	scr->lnums = (int *) (mem + Lines * Columns * 3 + Lines * sizeof(char *) * 3 + Lines * sizeof(int));
+	/* per-line shortcuts */
+	scr->chars = (ptr += Lines * Columns * sizeof(wchar_t) + Lines * Columns * sizeof(char) * 2);
+	scr->colors = (ptr +=  Lines * sizeof(wchar_t *));
+	scr->attrs = (ptr += Lines * sizeof(char *));
+	scr->touched = (ptr += Lines * sizeof(char *));
+	scr->lnums = (ptr += Lines * sizeof(int));
 
+	for (ptr = scr->mem, i = 0; i < Lines; i++, ptr += Columns * sizeof(wchar_t))
+		scr->chars[i] = ptr;
+	for (i = 0; i < Lines; i++, ptr += Columns * sizeof(char))
+		scr->colors[i] = ptr;
+	for (i = 0; i < Lines; i++, ptr += Columns * sizeof(char))
+		scr->attrs[i] = ptr;
 	for (i = 0; i < Lines; i++)
 	{
-		scr->chars[i] = (unsigned char *) (mem + Columns * i);
-		scr->colors[i] = (unsigned char *) (mem + Lines * Columns + Columns * i);
-		scr->attrs[i] = (unsigned char *) (mem + Lines * Columns * 2 + Columns * i);
 		scr->lnums[i] = i;
 		scr->touched[i] = 0;
 	}
 
-	memset(mem, ' ', Lines * Columns);
-	memset(mem + Lines * Columns, COLOR_WHITE | COLOR_BACK_BLACK, Lines * Columns);
-	memset(mem + Lines * Columns * 2, 0, Lines * Columns);
+	/* initialize screen memory */
+	wmemset(scr->mem, ' ', Lines * Columns);
+	memset(scr->mem + Lines * Columns, COLOR_WHITE | COLOR_BACK_BLACK, Lines * Columns);
+	memset(scr->mem + Lines * Columns * 2, 0, Lines * Columns);
 
 	scr->y = scr->x = 0;
 	scr->beeps = 0;
@@ -3462,7 +3479,7 @@ addLine_Screen(Screen * scr, int line, unsigned char attr)
 
 	for (i = Lines - 1; i > line; i--)
 	{
-		memcpy(scr->chars[i], scr->chars[i - 1], Columns);
+		wmemcpy(scr->chars[i], scr->chars[i - 1], Columns);
 		memcpy(scr->colors[i], scr->colors[i - 1], Columns);
 		memcpy(scr->attrs[i], scr->attrs[i - 1], Columns);
 		scr->lnums[i] = scr->lnums[i - 1];
@@ -3471,7 +3488,7 @@ addLine_Screen(Screen * scr, int line, unsigned char attr)
 
 	scr->lnums[line] = -1;
 	scr->touched[line] = 1;
-	memset(scr->chars[line], ' ', Columns);
+	wmemset(scr->chars[line], ' ', Columns);
 	memset(scr->colors[line], attr, Columns);
 	memset(scr->attrs[line], 0, Columns);
 }
@@ -3490,7 +3507,7 @@ delLine_Screen(Screen * scr, int line, unsigned char attr)
 
 	for (i = line; i < Lines - 1; i++)
 	{
-		memcpy(scr->chars[i], scr->chars[i + 1], Columns);
+		wmemcpy(scr->chars[i], scr->chars[i + 1], Columns);
 		memcpy(scr->colors[i], scr->colors[i + 1], Columns);
 		memcpy(scr->attrs[i], scr->attrs[i + 1], Columns);
 		scr->lnums[i] = scr->lnums[i + 1];
@@ -3499,7 +3516,7 @@ delLine_Screen(Screen * scr, int line, unsigned char attr)
 
 	scr->lnums[Lines - 1] = -1;
 	scr->touched[Lines - 1] = 1;
-	memset(scr->chars[Lines - 1], ' ', Columns);
+	wmemset(scr->chars[Lines - 1], ' ', Columns);
 	memset(scr->colors[Lines - 1], attr, Columns);
 	memset(scr->attrs[Lines - 1], 0, Columns);
 }
@@ -3539,7 +3556,7 @@ scrollw_Screen(Screen * scr, int beg, int left, int end, int right, int num, uns
 	{
 		for (i = beg + num; i <= end; i++)
 		{
-			memcpy(scr->chars[i - num] + left, scr->chars[i] + left, dw);
+			wmemcpy(scr->chars[i - num] + left, scr->chars[i] + left, dw);
 			memcpy(scr->colors[i - num] + left, scr->colors[i] + left, dw);
 			memcpy(scr->attrs[i - num] + left, scr->attrs[i] + left, dw);
 			scr->lnums[i - num] = scr->lnums[i];
@@ -3549,7 +3566,7 @@ scrollw_Screen(Screen * scr, int beg, int left, int end, int right, int num, uns
 			num = end;
 		for (i = end - num + 1; i <= end; i++)
 		{
-			memset(scr->chars[i] + left, ' ', dw);
+			wmemset(scr->chars[i] + left, ' ', dw);
 			memset(scr->colors[i] + left, attr, dw);
 			memset(scr->attrs[i] + left, 0, dw);
 			scr->lnums[i] = -1;
@@ -3560,7 +3577,7 @@ scrollw_Screen(Screen * scr, int beg, int left, int end, int right, int num, uns
 	{
 		for (i = end + num; i >= beg; i--)
 		{
-			memcpy(scr->chars[i - num] + left, scr->chars[i] + left, dw);
+			wmemcpy(scr->chars[i - num] + left, scr->chars[i] + left, dw);
 			memcpy(scr->colors[i - num] + left, scr->colors[i] + left, dw);
 			memcpy(scr->attrs[i - num] + left, scr->attrs[i] + left, dw);
 			scr->lnums[i - num] = scr->lnums[i];
@@ -3570,7 +3587,7 @@ scrollw_Screen(Screen * scr, int beg, int left, int end, int right, int num, uns
 			num = 0-beg;
 		for (i = beg - num - 1; i >= beg; i--)
 		{
-			memset(scr->chars[i] + left, ' ', dw);
+			wmemset(scr->chars[i] + left, ' ', dw);
 			memset(scr->colors[i] + left, attr, dw);
 			memset(scr->attrs[i] + left, 0, dw);
 			scr->lnums[i] = -1;
@@ -3586,7 +3603,8 @@ syncLine(Screen * scr, int y, int utf8term)
 	int Columns = scr->base->Columns;
 	int cols = (y == Lines - 1 ? Columns - 1 : Columns);
 	int x, e, i, end, l, contnum;
-	unsigned char *chars, *ochars, *colors, *ocolors, *attrs, *oattrs;
+	wchar_t *chars, *ochars;
+	unsigned char *colors, *ocolors, *attrs, *oattrs;
 	ScreenData *dp = (ScreenData *) scr->base->data;
 
 	if (!scr->touched[y])
@@ -3684,7 +3702,7 @@ syncLine(Screen * scr, int y, int utf8term)
 		if (attrs[i] & PG_ATTR)
 			termcap_put_graph_char(dp, chars[i]);
 		else
-			termcap_put_char(dp, chars[i], utf8term);
+			termcap_put_wchar(dp, chars[i], utf8term);
 		ocolors[i] = colors[i];
 		ochars[i] = chars[i];
 		oattrs[i] = attrs[i];
@@ -3821,7 +3839,7 @@ redraw_Screen(Screen * scr, int utf8term)
 	int Lines;
 	int Columns;
 	ScreenData *dp;
-	unsigned char **chars;
+	wchar_t **chars;
 	unsigned char **colors;
 	unsigned char **attrs;
 

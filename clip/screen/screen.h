@@ -108,8 +108,8 @@ int restart_tty(struct ScreenBase *base);    	/* set work mode */
 
 typedef struct Screen
 {
-	char *mem;
-	unsigned char **chars;
+	void *mem;
+	wchar_t **chars;
 	unsigned char **colors;
 	unsigned char **attrs;
 	int *touched;
